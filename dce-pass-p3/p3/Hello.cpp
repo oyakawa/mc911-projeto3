@@ -4,8 +4,8 @@
 
 using namespace llvm;
 
-    namespace {
-        struct Hello : public FunctionPass {
+namespace {
+    struct Hello : public FunctionPass {
         static char ID;
         Hello() : FunctionPass(ID) {}
 

@@ -15,12 +15,16 @@ bool Liveness::isLiveOut(Instruction *I, Value *V){
 }
 
 void Liveness::computeBBDefUse(Function &F){
+    // iterando em BBs
+    // for (Function::iterator i = F->begin(), e = F->end(); i != e; ++i) {}
 }
 
 void Liveness::computeBBInOut(Function &F){
 }
 
 void Liveness::computeIInOut(Function &F) {
+    // iterando em Is
+    // for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {}
 }
 
 bool Liveness::runOnFunction(Function &F) {
