@@ -4,17 +4,17 @@
 
 using namespace llvm;
 
-namespace {
-  struct Hello : public FunctionPass {
-    static char ID;
-    Hello() : FunctionPass(ID) {}
+    namespace {
+        struct Hello : public FunctionPass {
+        static char ID;
+        Hello() : FunctionPass(ID) {}
 
-    virtual bool runOnFunction(Function &F) {
-      errs() << "Hello: ";
-      errs() << F.getName() << '\n';
-      return false;
-    }
-  };
+        virtual bool runOnFunction(Function &F) {
+            errs() << "Hello: ";
+            errs() << F.getName() << '\n';
+            return false;
+        }
+    };
 }
 
 char Hello::ID = 0;

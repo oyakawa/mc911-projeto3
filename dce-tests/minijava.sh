@@ -1,7 +1,9 @@
 #!/bin/bash
 
-OPT=opt-3.6
-OPTLIB=../dce-pass-full/Release/P3.so
+#original value: opt-3.6
+OPT=opt
+#original value: ../dce-pass-full/Release/P3.so
+OPTLIB=../dce-pass-p3/Release/P3.so
 
 if [ $# -lt 2 ]; then
     echo -ne "Usage: \n"

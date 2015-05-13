@@ -7,7 +7,7 @@
 using namespace std;
 
 void print_elem(const Value* i) {
-  errs() << i->getName() << " ";
+    errs() << i->getName() << " ";
 }
 
 bool Liveness::isLiveOut(Instruction *I, Value *V){
@@ -27,7 +27,7 @@ bool Liveness::runOnFunction(Function &F) {
     computeBBDefUse(F);
     computeBBInOut(F);
     computeIInOut(F);
-	return false;
+    return false;
 }
 
 char Liveness::ID = 0;

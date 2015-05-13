@@ -20,43 +20,39 @@ using namespace llvm;
 
 namespace llvm {
 
-struct LivenessInfo {
-    std::set<const Value *> use;
-    std::set<const Value *> def;
-    std::set<const Value *> in;
-    std::set<const Value *> out;
-};
+    struct LivenessInfo {
+        std::set<const Value *> use;
+        std::set<const Value *> def;
+        std::set<const Value *> in;
+        std::set<const Value *> out;
+    };
 
-class Liveness: public FunctionPass {
-private:
+    class Liveness: public FunctionPass {
+    private:
 
-    DenseMap<const Instruction*, LivenessInfo> iLivenessMap;
-    DenseMap<const BasicBlock*, LivenessInfo> bbLivenessMap;
+        DenseMap<const Instruction*, LivenessInfo> iLivenessMap;
+        DenseMap<const BasicBlock*, LivenessInfo> bbLivenessMap;
 
-    DenseMap<const Instruction*, int> instMap;
-
-
-public:
-	static char ID; 
-	Liveness() : FunctionPass(ID) {}
-
-	virtual bool runOnFunction(Function &F);
-    void computeBBDefUse(Function &F);
-    void computeBBInOut(Function &F);
-
-    void computeIInOut(Function &F);
-
-    bool isLiveOut(Instruction *I, Value *V);
-    void addToMap(Function &F);
-
-	virtual void getAnalysisUsage(AnalysisUsage &AU) const{
-		AU.setPreservesAll();
-	}
+        DenseMap<const Instruction*, int> instMap;
 
 
+    public:
+        static char ID; 
+        Liveness() : FunctionPass(ID) {}
+        
+        virtual bool runOnFunction(Function &F);
+        void computeBBDefUse(Function &F);
+        void computeBBInOut(Function &F);
 
-};
+        void computeIInOut(Function &F);
 
+        bool isLiveOut(Instruction *I, Value *V);
+        void addToMap(Function &F);
+        
+        virtual void getAnalysisUsage(AnalysisUsage &AU) const{
+            AU.setPreservesAll();
+        }
+    };
 }
 
 

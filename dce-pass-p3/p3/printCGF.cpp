@@ -5,15 +5,15 @@
 using namespace llvm;
 
 namespace {
-  struct printCFG : public FunctionPass {
-    static char ID;
-    printCFG() : FunctionPass(ID) {}
+    struct printCFG : public FunctionPass {
+        static char ID;
+        printCFG() : FunctionPass(ID) {}
 
-    virtual bool runOnFunction(Function &F) {
-	  F.viewCFG(); 
-      return false;
-    }
-  };
+        virtual bool runOnFunction(Function &F) {
+            F.viewCFG(); 
+        return false;
+        }
+    };
 }
 
 char printCFG::ID = 0;
