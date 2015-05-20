@@ -63,12 +63,15 @@ void Liveness::computeBBDefUse(Function &F) {
 }
 
 void Liveness::computeBBInOut(Function &F) {
-    // iterando em BBs
-    for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
-        // iterando em Is
-        for (BasicBlock::iterator i = blk->begin(), f = blk->end(); i != f; ++i) {
-            // 
-            // 
+    bool hasChanges = true;
+    while (hasChanges) {
+        // iterando em BBs
+        for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
+            // iterando em Is
+            for (BasicBlock::iterator i = blk->begin(), f = blk->end(); i != f; ++i) {
+                // 
+                // 
+            }
         }
     }
 }
@@ -77,15 +80,14 @@ void Liveness::computeIInOut(Function &F) {
     // iterando em Is
     for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
         if (isLiveOut((Instruction*)&*I, NULL)) {
-            //errs() << *I << " is live out.\n";
         }
     }
 }
 
 bool Liveness::runOnFunction(Function &F) {
     computeBBDefUse(F);
-    computeBBInOut(F);
-    computeIInOut(F);
+    //computeBBInOut(F);
+    //computeIInOut(F);
     return false;
 }
 
