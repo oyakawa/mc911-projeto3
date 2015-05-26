@@ -48,35 +48,51 @@ void Liveness::computeBBDefUse(Function &F) {
         LivenessInfo li;
         // iterando em Is
         for (BasicBlock::iterator i = blk->begin(), f = blk->end(); i != f; ++i) {
-            // adiciona própria instrução ao conjunto def
-            li.def.insert(i);
+            // adiciona registrador ao conjunto def
+            if (!isa<CmpInst>(i) && !isa<ReturnInst>(i) && !isa<BranchInst>(i)) {
+                // TODO check if validation covers all cases
+                li.def.insert(i);
+            }
             // adiciona operandos ao conjunto use
             for (User::op_iterator op = i->op_begin(), x = i->op_end(); op != x; ++op){
-                if (!isa<ConstantInt>(op)) {
+                if (!isa<Constant>(op->get()) && !op->get()->getType()->isVoidTy()) {
                     // TODO check if validation covers all cases
-                    errs() << *i << " Block " << blk->getName() << " uses " << *op << "\n";
                     li.use.insert(*op);
                 }
             }
         }
         bbLivenessMap.insert(std::pair<const BasicBlock*, LivenessInfo>(blk,li));
-        // TODO check if maps entries are being set correctly
     }
 }
 
 void Liveness::computeBBInOut(Function &F) {
     bool hasChanges = true;
+    std::set<const Value *> diff, uni, succ_uni;
     while (hasChanges) {
         // iterando em BBs
         for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
+            diff.clear();
+            uni.clear();
+            succ_uni.clear();
             LivenessInfo li = bbLivenessMap[blk];
             std::set<const Value *> in1 = li.in;
             std::set<const Value *> out1 = li.out;
-            // TODO: li.in = li.use U (li.out - li.def)
-            // std::set<const Value *> diff =  std::set_difference(??)
-            // li.in = std::set_union( ??);
-            // TODO: li.out = UNION(in[s], s succeeds blk)
-            // ...
+            // li.in = li.use U (li.out - li.def)
+            std::set_difference(li.out.begin(), li.out.end(), 
+                                li.def.begin(), li.def.end(), std::inserter(diff, diff.begin()));
+            std::set_union(li.use.begin(), li.use.end(), diff.begin(), diff.end(), std::inserter(uni, uni.begin()));
+            li.in = uni;
+                           
+            // li.out = UNION(in[s], s succeeds blk) TODO
+            for (succ_iterator SI = succ_begin(blk), E = succ_end(blk); SI != E; ++SI) {
+                errs() << "Block " << SI->getName() << " succeeds " << blk->getName() << "\n";
+                BasicBlock *Succ = *SI;
+                LivenessInfo sli = bbLivenessMap[Succ];
+                std::set_union(succ_uni.begin(), succ_uni.end(), sli.in.begin(), sli.in.end(), std::inserter(succ_uni, succ_uni.begin()));
+            }
+            li.out = succ_uni;
+            errs() << blk->getName() << ": def[" << li.def.size() << "], use[" << li.use.size() << "], in[" << li.in.size() <<"], out[" << li.out.size() << "]\n"; 
+            hasChanges = false;
         }
     }
 }
@@ -92,7 +108,7 @@ void Liveness::computeIInOut(Function &F) {
 
 bool Liveness::runOnFunction(Function &F) {
     computeBBDefUse(F);
-    //computeBBInOut(F);
+    computeBBInOut(F);
     //computeIInOut(F);
     return false;
 }
