@@ -15,25 +15,21 @@ bool Liveness::isLiveOut(Instruction *I, Value *V) {
     // Instr. trivialmente viva se:
     // seu comportamento gerar efeitos colaterais;
     if (I->mayHaveSideEffects()) {
-        //errs() << "Side effects! ";
         return true;
     }
     
     // for um terminador;
-    if (isa<TerminatorInst>(I)) {        
-        //errs() << "Terminator! ";
+    if (isa<TerminatorInst>(I)) {
         return true;
     }
     
     // for instr. de debugging;
     if (isa<DbgInfoIntrinsic>(I)) {
-        //errs() << "Debug instruction! ";
         return true;
     }
     
     // for instr. de excecao;
     if (isa<LandingPadInst>(I)) {
-        //errs() << "Exception instruction! ";
         return true;
     }
     
@@ -64,13 +60,13 @@ void Liveness::computeBBDefUse(Function &F) {
                     && !op->get()->getType()->isLabelTy()) {
                     // TODO check if validation covers all cases
                     if (!li.def.count(op->get())) {
-                        errs() << "Block " << blk->getName() << " uses " << op->get()->getName() << "\n";
+                        //errs() << "Block " << blk->getName() << " uses " << op->get()->getName() << "\n";
                         li.use.insert(op->get());
                     }
                 }
             }
         }
-        bbLivenessMap.insert(std::pair<const BasicBlock*, LivenessInfo>(blk,li));
+        bbLivenessMap[blk] = li;
     }
 }
 
@@ -91,26 +87,27 @@ void Liveness::computeBBInOut(Function &F) {
             LivenessInfo li = bbLivenessMap[blk];
             oldInSets[blk] = li.in;
             oldOutSets[blk] = li.out;
+            
             // li.in = li.use U (li.out - li.def)
             std::set_difference(li.out.begin(), li.out.end(), 
                                 li.def.begin(), li.def.end(), std::inserter(diff, diff.begin()));
             std::set_union(li.use.begin(), li.use.end(), diff.begin(), diff.end(), std::inserter(uni, uni.begin()));
-            li.in = uni;
+            bbLivenessMap[blk].in = uni;
                            
             // li.out = UNION(in[s], s succeeds blk)
             for (succ_iterator SI = succ_begin(blk), E = succ_end(blk); SI != E; ++SI) {
                 BasicBlock *Succ = *SI;
                 LivenessInfo sli = bbLivenessMap[Succ];
-                errs() << "Block " << Succ->getName() << " (in[" << sli.in.size() << "]) succeeds " << blk->getName() << "\n";
+                //errs() << "Block " << Succ->getName() << " (in[" << sli.in.size() << "]) succeeds " << blk->getName() << "\n";
                 std::set_union(succ_uni.begin(), succ_uni.end(), sli.in.begin(), sli.in.end(), std::inserter(succ_aux, succ_aux.begin()));
                 succ_uni = succ_aux;
             }
-            li.out = succ_uni;
+            bbLivenessMap[blk].out = succ_uni;
             errs() << blk->getName() << ": def[" << li.def.size() << "], use[" << li.use.size() << "], in[" << li.in.size() <<"], out[" << li.out.size() << "]\n"; 
         }
-        // verifica se houve alteracoes nos conjuntos in e out
+        // verifica se houve alteracoes nos conjuntos in; havendo alguma, reiterar
         for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
-            if (bbLivenessMap[blk].in != oldInSets[blk] || bbLivenessMap[blk].out != oldOutSets[blk]) {
+            if (bbLivenessMap[blk].in != oldInSets[blk]) {
                 hasChanges = true;
                 break;
             }
@@ -119,18 +116,31 @@ void Liveness::computeBBInOut(Function &F) {
 }
 
 void Liveness::computeIInOut(Function &F) {
+    
+    LivenessInfo instInfo, blockInfo;
+    std::set<const Value *> prevDef;
+    std::set<const Value *> prevUse;
     // iterando em Insts
     for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
-        // TODO retrieve instruction info (Appel, p.362)
-        if (isLiveOut((Instruction*)&*I, NULL)) {
-        }
+        Instruction *inst = &*I;
+        blockInfo = bbLivenessMap[inst->getParent()];
+        // TODO complete the sets
+        instInfo.in = blockInfo.in;
+        instInfo.out = blockInfo.out;
+        //iLivenessMap[inst] = instInfo;
     }
+    /*for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+        // TODO retrieve instruction info (Appel, p.362)
+        Instruction *inst = *I;
+        if (isLiveOut(inst, NULL)) {
+        }
+    }*/
 }
 
 bool Liveness::runOnFunction(Function &F) {
     computeBBDefUse(F);
     computeBBInOut(F);
-    //computeIInOut(F);
+    computeIInOut(F);
     return false;
 }
 
