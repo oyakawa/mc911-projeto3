@@ -33,7 +33,15 @@ bool Liveness::isLiveOut(Instruction *I, Value *V) {
         return true;
     }
     
-    // TODO: for usada por outra instr. que está viva
+    /**
+     * TODO: for usada por outra instr. que está viva
+     * Isto significa que se a variavel:
+     * 1. estiver em use[N], entao ela eh live-in de N.
+     * 2. estiver presente no live-in de N, entao ela eh live-out de todos os 
+     *    predecessores N de todos os nós M;
+     * 3. estiver live-out de N, e nao em def de N, entao ela tambem eh 
+     *    live-out de N
+     */
     
     return false;
 }
@@ -104,6 +112,7 @@ void Liveness::computeBBInOut(Function &F) {
             }
             bbLivenessMap[blk].out = succ_uni;
             errs() << blk->getName() << ": def[" << li.def.size() << "], use[" << li.use.size() << "], in[" << li.in.size() <<"], out[" << li.out.size() << "]\n"; 
+
         }
         // verifica se houve alteracoes nos conjuntos in; havendo alguma, reiterar
         for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
