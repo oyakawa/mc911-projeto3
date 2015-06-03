@@ -3,7 +3,7 @@ LLVM_CONFIG?=llvm-config
 CXX=g++
 
 SRC_DIR=./p3
-PASS_SO=Release/P3.so
+PASS_SO=./Release/P3.so
 
 CPP_FILES=$(wildcard $(SRC_DIR)/*.cpp)  
 OBJ_FILES=$(addprefix $(SRC_DIR)/, $(notdir $(CPP_FILES:.cpp=.o)))

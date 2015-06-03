@@ -11,7 +11,7 @@ namespace {
 
         virtual bool runOnFunction(Function &F) {
             F.viewCFG(); 
-        return false;
+            return false;
         }
     };
 }
