@@ -37,8 +37,20 @@ namespace {
              * 
              */
             
+            std::set<Instruction*> W;
+            for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
+                W.insert(&*I);
             
+            while (!W.empty()) {
+                Instruction v = W.begin();
+                W.erase(v);
+                if (v->use_empty) {
+                    errs() << "v is not empty\n";
+                }
+            }
+                    
             
+                                /*
             for (User *U : F.users()) {
 
                 if (Instruction *inst = dyn_cast<Instruction>(U)) {
@@ -49,7 +61,6 @@ namespace {
                         // remove some variable v from W
                         // inst++;
                         // inst->eraseFromParent();
-                                /*
                         for (Use &var : inst->operands()) {
                             // if v's list of uses is empty
                             if (var->use_empty()) {
@@ -68,13 +79,13 @@ namespace {
                                 }
                             }
                         }
-                                */
                         
                     }
                     
            
                 }
             }
+                                */
             
             return false;
         }
