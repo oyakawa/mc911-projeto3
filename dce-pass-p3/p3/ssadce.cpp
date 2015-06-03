@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <set>
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
@@ -6,6 +7,7 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/raw_ostream.h"
+#include "Liveness.h"
 
 using namespace llvm;
 
@@ -38,14 +40,25 @@ namespace {
              */
             
             std::set<Instruction*> W;
-            for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
-                W.insert(&*I);
+            for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+                if (!isa<CmpInst>(*I) && !isa<ReturnInst>(*I) && !isa<BranchInst>(*I) 
+                    && !isa<StoreInst>(*I) && !(*I).getType()->isVoidTy()) {
+                    W.insert(cast<Instruction>(&*I));
+                }
+            }
             
             while (!W.empty()) {
-                Instruction v = W.begin();
+                Instruction *v = *(W.begin());
                 W.erase(v);
-                if (v->use_empty) {
-                    errs() << "v is not empty\n";
+                if (v->use_empty()) {
+                    errs() << "v is not empty: " << *v << "\n";
+                    
+                    /*
+                    for (Use &U : v->operands()) {
+                        Value *S = U.get();
+                        errs() << *S
+                    }
+                    */
                 }
             }
                     
@@ -93,4 +106,4 @@ namespace {
 }
 
 char ssadce::ID = 0;
-static RegisterPass<ssadce> X("ssa-dce", "SSA-DCE PASS", false, false);
+static RegisterPass<ssadce> X("dce-ssa", "SSA-DCE PASS", false, false);
