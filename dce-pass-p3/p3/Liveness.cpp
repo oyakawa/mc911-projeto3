@@ -35,8 +35,8 @@ bool Liveness::isLiveOut(Instruction *I, Value *V) {
     }
     
     // for usada por outra instr. que está viva
-    LivenessInfo instInfo = iLivenessMap[I];
-    if (instInfo.out.count(I)) {
+    // (i.e. se atribuiu algo a uma variavel live-out)
+    if (iLivenessMap[I].out.count(I)) {
         return true;
     }
     
@@ -58,7 +58,6 @@ void Liveness::computeBBDefUse(Function &F) {
                 && !isa<StoreInst>(i) && !i->getType()->isVoidTy()) {
                 
                 // TODO check if validation covers all cases
-                // errs() << "Block " << blk->getName() << " defines " << i->getName() << "\n";
                 li.def.insert(i);
                 iLivenessMap[i].def.insert(i);
             }
@@ -78,7 +77,6 @@ void Liveness::computeBBDefUse(Function &F) {
                     // TODO check if validation covers all cases
                     iLivenessMap[i].use.insert(op->get());
                     if (!li.def.count(op->get())) {
-                        //errs() << "Block " << blk->getName() << " uses " << op->get()->getName() << "\n";
                         li.use.insert(op->get());
                         
                     }
@@ -96,9 +94,9 @@ void Liveness::computeBBInOut(Function &F) {
     DenseMap<const BasicBlock*, std::set<const Value *> > oldInSets;
     DenseMap<const BasicBlock*, std::set<const Value *> > oldOutSets;
         
-    do {
-        
+    do {        
         hasChanges = false;
+        
         // iterando em BBs (ordem reversa)
         Function::iterator blk, e;
         blk = F.end();
@@ -125,13 +123,11 @@ void Liveness::computeBBInOut(Function &F) {
             for (succ_iterator SI = succ_begin(blk), E = succ_end(blk); SI != E; ++SI) {
                 BasicBlock *Succ = *SI;
                 LivenessInfo sli = bbLivenessMap[Succ];
-                //errs() << "Block " << Succ->getName() << " (in[" << sli.in.size() << "]) succeeds " << blk->getName() << "\n";
                 std::set_union(succ_uni.begin(), succ_uni.end(), 
                                sli.in.begin(), sli.in.end(), std::inserter(succ_aux, succ_aux.begin()));
                 succ_uni = succ_aux;
             }
             bbLivenessMap[blk].out = succ_uni;
-            //errs() << blk->getName() << ": def[" << li.def.size() << "], use[" << li.use.size() << "], in[" << li.in.size() <<"], out[" << li.out.size() << "]\n";
             if (blk == e) {
                 break;
             }
@@ -157,6 +153,7 @@ void Liveness::computeIInOut(Function &F) {
         blockInfo = bbLivenessMap[blk];
         currIn = blockInfo.in;
         succIn = blockInfo.out;
+        
         // iterando em Insts (ordem reversa)
         BasicBlock::iterator i, f;
         i = blk->end();
@@ -172,35 +169,35 @@ void Liveness::computeIInOut(Function &F) {
             instInfo.in = uni;
             iLivenessMap[i] = instInfo;
             succIn = uni;
-            //errs() << *i << ": def[" << instInfo.def.size() << "], use[" << instInfo.use.size() << "], in[" << instInfo.in.size() <<"], out[" << instInfo.out.size() << "]\n"; 
             if (i == f) {
                 break;
             }
         }
     }
-    //errs() << "\n#######\n"; 
     
     
     // iterando em BBs
     for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
+        
         // iterando em Insts
-        //errs() << "Block " << blk->getName() << ":\n";
-        for (BasicBlock::iterator i = blk->begin(), f = blk->end(); i != f; ++i) {
-            //instInfo = iLivenessMap[i];
-            //errs() << ">" << *i << ": def[" << instInfo.def.size() << "], use[" << instInfo.use.size() << "], in[" << instInfo.in.size() <<"], out[" << instInfo.out.size() << "]\n";
-            if (!isLiveOut(i, NULL)) {
-                if (!isa<CmpInst>(i) && !isa<ReturnInst>(i) && !isa<BranchInst>(i)
-                    && !isa<StoreInst>(i) && !i->getType()->isVoidTy()) {
+        BasicBlock::iterator i, f;
+        i = blk->begin();
+        f = blk->end();
+        
+        while (i != f) {
+            Instruction *inst = i;
+            i++;
+            if (!isLiveOut(inst, NULL)) {
+                if (!isa<CmpInst>(inst) && !isa<ReturnInst>(inst) && !isa<BranchInst>(inst)
+                    && !isa<StoreInst>(inst) && !inst->getType()->isVoidTy()) {
                     
                     // Se instr. nao live-out e atribui valor a registr.,
                     // esta morta.
-                    errs() << *i << " IS DEAD.\n";
-                    //i->replaceAllUsesWith();
-                    //i->eraseFromParent();                
+                    errs() << *inst << " is dead.\n";
+                    inst->eraseFromParent();                
                 }
             }
         }
-        //errs() << "\n";
     }
 }
 
