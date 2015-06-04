@@ -34,10 +34,19 @@ bool Liveness::isLiveOut(Instruction *I, Value *V) {
         return true;
     }
     
-    // for usada por outra instr. que está viva
-    // (i.e. se atribuiu algo a uma variavel live-out)
+    // atribuir a um registrador live-out que for usado por outra instr. viva;
+    bool isAlive = false;
     if (iLivenessMap[I].out.count(I)) {
-        return true;
+        for (Value::user_iterator user = I->user_begin(), e = I->user_end(); user != e; user++) {
+            
+            if (Instruction *v = dyn_cast<Instruction>(*user)) {
+                if (isLiveOut(v, nullptr)) {
+                    isAlive = true;
+                    break;
+                }
+            }
+        }
+        return isAlive;
     }
     
     return false;
@@ -57,7 +66,6 @@ void Liveness::computeBBDefUse(Function &F) {
             if (!isa<CmpInst>(i) && !isa<ReturnInst>(i) && !isa<BranchInst>(i) 
                 && !isa<StoreInst>(i) && !i->getType()->isVoidTy()) {
                 
-                // TODO check if validation covers all cases
                 li.def.insert(i);
                 iLivenessMap[i].def.insert(i);
             }
@@ -67,14 +75,13 @@ void Liveness::computeBBDefUse(Function &F) {
         for (BasicBlock::iterator i = blk->begin(), f = blk->end(); i != f; ++i) {
             
             // iterando em operandos
-            for (User::op_iterator op = i->op_begin(), x = i->op_end(); op != x; ++op){
+            for (User::op_iterator op = i->op_begin(), x = i->op_end(); op != x; ++op) {
                 
                 // adiciona operandos ao conjunto use (caso nao tenham sido definidos no bloco)
                 if (!isa<Constant>(op->get()) && !op->get()->getType()->isVoidTy() 
                     && !op->get()->getType()->isFunctionTy()
                     && !op->get()->getType()->isLabelTy()) {
                     
-                    // TODO check if validation covers all cases
                     iLivenessMap[i].use.insert(op->get());
                     if (!li.def.count(op->get())) {
                         li.use.insert(op->get());
@@ -102,7 +109,7 @@ void Liveness::computeBBInOut(Function &F) {
         blk = F.end();
         e = F.begin();
         
-        while (true) {
+        do {
             blk--;
             diff.clear();
             uni.clear();
@@ -128,10 +135,8 @@ void Liveness::computeBBInOut(Function &F) {
                 succ_uni = succ_aux;
             }
             bbLivenessMap[blk].out = succ_uni;
-            if (blk == e) {
-                break;
-            }
-        }
+        } while (blk != e);
+        
         // verifica se houve alteracoes nos conjuntos in; havendo alguma, reiterar
         for (Function::iterator blk = F.begin(), e = F.end(); blk != e; ++blk) {
             if (bbLivenessMap[blk].in != oldInSets[blk]) {
@@ -158,7 +163,7 @@ void Liveness::computeIInOut(Function &F) {
         BasicBlock::iterator i, f;
         i = blk->end();
         f = blk->begin();
-        while (true) {
+        do {
             i--;
             instInfo = iLivenessMap[i];
             instInfo.out = succIn;
@@ -169,10 +174,7 @@ void Liveness::computeIInOut(Function &F) {
             instInfo.in = uni;
             iLivenessMap[i] = instInfo;
             succIn = uni;
-            if (i == f) {
-                break;
-            }
-        }
+        } while (i != f);
     }
     
     
@@ -187,13 +189,13 @@ void Liveness::computeIInOut(Function &F) {
         while (i != f) {
             Instruction *inst = i;
             i++;
-            if (!isLiveOut(inst, NULL)) {
+            if (!isLiveOut(inst, nullptr)) {
                 if (!isa<CmpInst>(inst) && !isa<ReturnInst>(inst) && !isa<BranchInst>(inst)
                     && !isa<StoreInst>(inst) && !inst->getType()->isVoidTy()) {
                     
                     // Se instr. nao live-out e atribui valor a registr.,
                     // esta morta.
-                    errs() << *inst << " is dead.\n";
+                    inst->dropAllReferences();
                     inst->eraseFromParent();                
                 }
             }
