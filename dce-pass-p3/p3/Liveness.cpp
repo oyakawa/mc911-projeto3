@@ -13,24 +13,35 @@ void print_elem(const Value* i) {
 
 bool Liveness::isLiveOut(Instruction *I, Value *V) {
     
+    if (instMap[I] == 1) {
+        return true;
+    }
+    if (instMap[I] == 2) {
+        return false;
+    }
+    
     // Instr. trivialmente viva se:
     // seu comportamento gerar efeitos colaterais;
     if (I->mayHaveSideEffects()) {
+        instMap[I] = 1;
         return true;
     }
     
     // for um terminador;
     if (isa<TerminatorInst>(I)) {
+        instMap[I] = 1;
         return true;
     }
     
     // for instr. de debugging;
     if (isa<DbgInfoIntrinsic>(I)) {
+        instMap[I] = 1;
         return true;
     }
     
     // for instr. de excecao;
     if (isa<LandingPadInst>(I)) {
+        instMap[I] = 1;
         return true;
     }
     
@@ -46,9 +57,17 @@ bool Liveness::isLiveOut(Instruction *I, Value *V) {
                 }
             }
         }
-        return isAlive;
+        if (isAlive) {
+            instMap[I] = 1;
+            return true;
+        }
+        else {
+            instMap[I] = 2;
+            return false;
+        }
     }
     
+    instMap[I] = 2;
     return false;
 }
 
@@ -176,6 +195,11 @@ void Liveness::computeIInOut(Function &F) {
             succIn = uni;
         } while (i != f);
     }
+    
+    
+    for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
+        // iterando em Insts
+        instMap[cast<Instruction*>(I)] = 0; // 0 = indefinido; 1 = vivo; 2 = morto;
     
     
     // iterando em BBs
